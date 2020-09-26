@@ -1,6 +1,7 @@
 ---
 version: 2
 jobs:
+  # Unit tests
   test:
     docker:
     - image: cimg/node:13.11.0
@@ -28,6 +29,7 @@ jobs:
         command: npm run test
         name: Run NPM Tests
         working_directory: ~/project
+  # Build and Publish Docker image
   build:
     docker:
       - image: circleci/buildpack-deps:stretch
@@ -41,6 +43,7 @@ jobs:
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker push $IMAGE_NAME:latest
             echo "Published the docker image to Dockerhub"
+  # Deploy the application on GKE
   deploy: 
     docker:
       - image: google/cloud-sdk:alpine
@@ -70,18 +73,21 @@ workflows:
   version: 2
   node-tests:
     jobs:
+    # Unit tests trigger on both the branches
     - test:
         filters:
           branches:
             only:
             - feature/devops
             - master
+    # Docker image is built and deployed only from master branch
     - build:
         requires:
         - test
         filters:
           branches:
             only: master
+    # Application is deployed only from master branch
     - deploy:
         requires:
         - build
