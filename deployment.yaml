@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: buildit
-        image: $IMAGE_NAME:latest
+        image: navala/building-on-ci:latest
         ports:
         - containerPort: 3000
 ---
