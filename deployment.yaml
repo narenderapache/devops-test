@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: build-deploy
+  labels:
+    app: buildit
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: buildit
+  template:
+    metadata:
+      labels:
+        app: buildit
+    spec:
+      containers:
+      - name: buildit
+        image: $IMAGE_NAME:latest
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: buildit-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: buildit
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
