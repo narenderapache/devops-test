@@ -29,8 +29,6 @@ jobs:
         name: Run NPM Tests
         working_directory: ~/project
   build:
-    environment:
-      IMAGE_NAME: navala/building-on-ci
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
@@ -43,6 +41,31 @@ jobs:
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker push $IMAGE_NAME:latest
             echo "Published the docker image to Dockerhub"
+  deploy: 
+    docker:
+      - image: google/cloud-sdk:alpine
+    working_directory: ~/project
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Initialize gcloud CLI to connect to Google Cloud
+          command: |
+            # Store service account
+            echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+
+            # Initialize gcloud CLI
+            gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID
+            gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
+
+      - run:
+          name: install deployment and service
+          command: |
+            gcloud container clusters get-credentials buildit-devops
+            gcloud components install kubectl
+            kubectl apply -f ~/project/deployment.yaml
+            echo "Successfully deployed to k8s cluster"
 workflows:
   version: 2
   node-tests:
@@ -56,6 +79,12 @@ workflows:
     - build:
         requires:
         - test
+        filters:
+          branches:
+            only: master
+    - deploy:
+        requires:
+        - build
         filters:
           branches:
             only: master
